@@ -1,0 +1,11 @@
+# Netlify runs build.py, then publishes the dist/ folder.
+[build]
+  command = "python3 build.py"
+  publish = "dist"
+
+# Always fetch the newest HTML, so an update shows up on the next page load.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache"
+    X-Content-Type-Options = "nosniff"
