@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!--@@CONFIG@@-->
-<meta name="build" content="@@BUILD@@">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seedling Portal</title>
@@ -15,7 +13,6 @@ body{font-family:sans-serif;background:#f0f7f0;color:#1a2e1a;min-height:100vh}
 #app-screen,#login-screen{width:100%!important;max-width:100%!important;}
 .container{width:100%!important;max-width:100%!important;padding:14px;}
 .table-wrap{width:100%!important;overflow-x:auto;}
-html.emb #login-screen,html.emb button[onclick="logout()"]{display:none!important}
 #login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1b4d1b 0%,#2d6a2d 60%,#4caf50 100%);padding:20px}
 .login-card{background:#fff;border-radius:16px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.18)}
 .login-logo{text-align:center;margin-bottom:20px}
@@ -157,6 +154,7 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
     <button class="tab admin-only" onclick="showTab('admin',this)">🔧 Admin</button>
     <button class="tab admin-only" onclick="showTab('eq-admin',this)">📬 Enquiries</button>
     <button class="tab admin-only" onclick="showTab('dist-entry',this)">📋 Distribution Entry</button>
+    <button class="tab" onclick="showTab('contact',this)">📞 Contacts</button>
   </div>
   <div class="container">
     <div id="public-view">
@@ -203,6 +201,36 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
       </div>
       <div class="section"><h3>🏕️ Nursery-wise Balance</h3>
         <div class="chart-box"><h4>Balance Stock per Nursery</h4><canvas id="chart-nursery" height="180"></canvas></div>
+      </div>
+    </div>
+    <div id="contact-view" style="display:none">
+      <div class="section admin-only" id="ct-form-wrap" style="display:none">
+        <h3 id="ct-form-title">➕ Add Contact</h3>
+        <div class="form-grid">
+          <div class="fg"><label>Name of the Officer *</label><input id="ct-name" maxlength="150"></div>
+          <div class="fg"><label>Designation</label><input id="ct-desig" maxlength="150"></div>
+          <div class="fg"><label>Name of Office</label><input id="ct-office" maxlength="200"></div>
+          <div class="fg"><label>Mobile No(s).</label><div id="ct-mobile-list"></div></div>
+          <div class="fg"><label>Landline No(s).</label><div id="ct-landline-list"></div></div>
+          <div class="fg"><label>Email Address(es)</label><div id="ct-email-list"></div></div>
+          <div class="fg"><label>In-charge of Nurseries (one or more)</label><details class="ckdd"><summary id="ct-n-sum">Select nurseries ▾</summary><div id="ct-nurseries" style="max-height:220px;overflow:auto"></div></details></div>
+          <div class="fg" style="grid-column:1/-1"><label>Office Address</label><textarea id="ct-address" rows="2" maxlength="500" style="width:100%;padding:7px 9px;border:1px solid #b5d4b5;border-radius:6px;font-size:13px;font-family:inherit"></textarea></div>
+        </div>
+        <div class="btn-row">
+          <button class="abtn ag" id="ct-save-btn" onclick="saveContact()">Add Contact</button>
+          <button class="abtn ao" onclick="clearContactForm()">Clear</button>
+          <button class="abtn agr" id="ct-cancel-btn" style="display:none" onclick="clearContactForm()">Cancel Edit</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3>📞 Contact Details</h3>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:space-between">
+          <input id="ct-search" placeholder="Search name, office, nursery..." oninput="renderContacts()" style="max-width:300px;padding:7px 10px;border:1px solid #b5d4b5;border-radius:6px;font-size:13px">
+          <button class="abtn ao" onclick="loadContacts()">🔄 Refresh</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Officer</th><th>Designation</th><th>Office</th><th>Mobile</th><th>Landline</th><th>Email</th><th>Office Address</th><th>In-charge Nurseries</th><th class="ct-act">Action</th></tr></thead>
+          <tbody id="ct-tbody"></tbody></table></div>
       </div>
     </div>
     <div id="report-view" style="display:none">
@@ -259,14 +287,14 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
       <div class="section">
         <h3 id="stock-form-title">➕ Add Seedling Record</h3>
         <div class="form-grid">
-          <div class="fg"><label>District</label><input id="a-district" placeholder="e.g. Chittoor"></div>
-          <div class="fg"><label>Mandal</label><input id="a-mandal" placeholder="e.g. Tirupati"></div>
-          <div class="fg"><label>Division</label><input id="a-division" placeholder="e.g. Chittoor"></div>
-          <div class="fg"><label>Range</label><input id="a-range" placeholder="e.g. Tirupati Range"></div>
-          <div class="fg"><label>Nursery</label><input id="a-nursery" placeholder="e.g. Alipiri Nursery"></div>
-          <div class="fg"><label>Scheme</label><input id="a-scheme" placeholder="e.g. CAMPA"></div>
-          <div class="fg"><label>Species Name</label><input id="a-species" placeholder="e.g. Teak"></div>
-          <div class="fg"><label>Bag Size</label><input id="a-bagsize" placeholder="e.g. Small, 4x6"></div>
+          <div class="fg"><label>District</label><select id="a-district" onchange="comboChange('a-district')"></select><input id="a-district-new" placeholder="Type new district" style="display:none;margin-top:6px"></div>
+          <div class="fg"><label>Mandal</label><select id="a-mandal" onchange="comboChange('a-mandal')"></select><input id="a-mandal-new" placeholder="Type new mandal" style="display:none;margin-top:6px"></div>
+          <div class="fg"><label>Division</label><select id="a-division" onchange="comboChange('a-division')"></select><input id="a-division-new" placeholder="Type new division" style="display:none;margin-top:6px"></div>
+          <div class="fg"><label>Range</label><select id="a-range" onchange="comboChange('a-range')"></select><input id="a-range-new" placeholder="Type new range" style="display:none;margin-top:6px"></div>
+          <div class="fg"><label>Nursery</label><select id="a-nursery" onchange="comboChange('a-nursery')"></select><input id="a-nursery-new" placeholder="Type new nursery" style="display:none;margin-top:6px"></div>
+          <div class="fg"><label>Scheme</label><select id="a-scheme" onchange="comboChange('a-scheme')"></select><input id="a-scheme-new" placeholder="Type new scheme" style="display:none;margin-top:6px"></div>
+          <div class="fg"><label>Species Name</label><select id="a-species" onchange="comboChange('a-species')"></select><input id="a-species-new" placeholder="Type new species name" style="display:none;margin-top:6px"></div>
+          <div class="fg"><label>Bag Size</label><select id="a-bagsize" onchange="comboChange('a-bagsize')"></select><input id="a-bagsize-new" placeholder="Type new bag size" style="display:none;margin-top:6px"></div>
           <div class="fg"><label>Date of Distribution</label><input id="a-date" type="date"></div>
           <div class="fg"><label>Available Seedlings</label><input id="a-avail" type="number" min="0" placeholder="0"></div>
           <div class="fg"><label>Distributed</label><input id="a-dist" type="number" min="0" placeholder="0"></div>
@@ -308,7 +336,7 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
           <div class="fg"><label>Sanction Scheme</label><input id="de-sanction_Scheme" placeholder="e.g. CAMPA"></div>
           <div class="fg"><label>Sanction Date</label><input id="de-sanction_dt" type="date"></div>
           <div class="fg"><label>Sanctioned By</label><input id="de-sanction_by" placeholder="Officer name"></div>
-          <div class="fg"><label>Sanction Quantity</label><input id="de-sanction_qnty" type="number" min="0" placeholder="0"></div>
+          <div class="fg"><label>Sanction Quantity</label><input id="de-sanction_qnty" type="number" min="0" placeholder="0" oninput="updateSelectionSummary()"></div>
           <div class="fg"><label>Free No.</label><input id="de-sanction_free_no" type="number" min="0" placeholder="0"></div>
           <div class="fg"><label>Cost No.</label><input id="de-sanction_cost_no" type="number" min="0" placeholder="0"></div>
           <div class="fg"><label>Rate (₹)</label><input id="de-sanction_rate" type="number" min="0" placeholder="0"></div>
@@ -403,18 +431,26 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
 
 <script>
 /* ── SUPABASE CONFIG (publishable key is safe to expose; security is enforced by Row Level Security) ── */
-const CFG=window.APP_CONFIG||{};
-const SUPABASE_URL=CFG.supabaseUrl||'https://ewnrcnfyiulrjritaeam.supabase.co';
-const SUPABASE_KEY=CFG.anonKey||'sb_publishable_6CzxBj7D2i4HrMikFq7yuA_cDRSuCgq';
+const SUPABASE_URL='https://ewnrcnfyiulrjritaeam.supabase.co';
+const SUPABASE_KEY='sb_publishable_6CzxBj7D2i4HrMikFq7yuA_cDRSuCgq';
 // Fall back to in-memory session if the browser blocks storage (e.g. embedded iframe)
 const memStore={};
 let authStorage;
 try{localStorage.setItem('_t','1');localStorage.removeItem('_t');authStorage=window.localStorage;}
 catch(e){authStorage={getItem:k=>memStore[k]||null,setItem:(k,v)=>{memStore[k]=v;},removeItem:k=>{delete memStore[k];}};}
-// Inside the main app (a frame of it) this page reuses the app's signed-in connection; opened on its own it has its own sign-in.
-const HOST=(window.parent!==window&&window.parent.__NURSERY__)?window.parent.__NURSERY__:null;
-if(HOST)document.documentElement.classList.add('emb');
-const sb=HOST?HOST.sb():supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storage:authStorage,persistSession:true,autoRefreshToken:true}});
+// Some hosts (sandboxed iframes / preview frames) proxy fetch via postMessage, which cannot clone Headers/AbortSignal objects.
+// Convert them to plain data before calling fetch.
+const baseFetch=window.fetch.bind(window);
+function safeFetch(input,init){
+  const opts=Object.assign({},init||{});
+  if(opts.headers&&!Array.isArray(opts.headers)&&typeof opts.headers.forEach==='function'&&!(opts.headers.constructor===Object)){
+    const h={};opts.headers.forEach((v,k)=>{h[k]=v;});opts.headers=h;
+  }
+  delete opts.signal;
+  const url=(typeof input==='string')?input:(input&&input.url)?input.url:String(input);
+  return baseFetch(url,opts);
+}
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{fetch:safeFetch},auth:{storage:authStorage,persistSession:true,autoRefreshToken:true}});
 
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let currentUser=null,currentRole='public',refreshTimer=null;
@@ -452,7 +488,6 @@ function showApp(label){
 let loggingOut=false;
 function sessionExpired(){
   if(!currentUser)return;
-  if(HOST){clearTimeout(refreshTimer);records=[];enquiries=[];continuePublic();return;}   // embedded: the main app handles sign-in
   currentUser=null;currentRole='public';clearTimeout(refreshTimer);records=[];enquiries=[];
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -481,8 +516,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementB
 // Restore an existing staff session on page load
 (async()=>{
   const {data}=await sb.auth.getSession();
-  if(data&&data.session&&await enterAsStaff(data.session.user))return;
-  if(HOST)continuePublic();   // embedded without a nursery role: public view instead of a login screen
+  if(data&&data.session)await enterAsStaff(data.session.user);
 })();
 
 let lang='en';
@@ -546,7 +580,7 @@ async function loadSheetData(){
     records=all.map(r=>({id:r.id,district:r.district,mandal:r.mandal,division:r.division,range:r.range_name,nursery:r.nursery,scheme:r.scheme,species:r.species,bagSize:r.bag_size,distDate:r.dist_date||'',available:r.available,distributed:r.distributed}));
     if(!records.length){showBanner('⚠️ No stock records found.');return;}
     hideBanner();
-    populateFilters();applyFilters();populateSpeciesDropdown();
+    populateFilters();applyFilters();populateSpeciesDropdown();populateAdminCombos();
     if(document.getElementById('dist-entry-view').style.display==='block'){populateDistFilters();renderDistTable();}
     if(document.getElementById('admin-view').style.display==='block')renderAdmin();
     refreshTimer=setTimeout(loadSheetData,5*60*1000);
@@ -618,7 +652,7 @@ function renderAdmin(){
 const byId=id=>document.getElementById(id);
 let editingStockId=null,eqSel={};
 async function addRecord(){
-  const f=id=>byId(id).value.trim();
+  const f=id=>comboVal(id);
   const avail=parseInt(byId('a-avail').value)||0,dist=parseInt(byId('a-dist').value)||0;
   if(!f('a-nursery')||!f('a-species')){alert('Please fill at least Nursery and Species.');return;}
   if(dist>avail){alert('Distributed cannot exceed Available.');return;}
@@ -632,7 +666,7 @@ async function addRecord(){
 function editStock(id){
   const r=records.find(x=>String(x.id)===String(id));if(!r)return;
   const m={'a-district':r.district,'a-mandal':r.mandal,'a-division':r.division,'a-range':r.range,'a-nursery':r.nursery,'a-scheme':r.scheme,'a-species':r.species,'a-bagsize':r.bagSize,'a-date':r.distDate,'a-avail':r.available,'a-dist':r.distributed};
-  Object.entries(m).forEach(([k,v])=>byId(k).value=v==null?'':v);
+  Object.entries(m).forEach(([k,v])=>setCombo(k,v));
   editingStockId=r.id;
   byId('stock-form-title').textContent='✏️ Edit Seedling Record #'+r.id;
   byId('stock-save-btn').textContent='Update Record';
@@ -648,6 +682,7 @@ async function deleteRecord(id){
 }
 function clearForm(){
   ['a-district','a-mandal','a-division','a-range','a-nursery','a-scheme','a-species','a-bagsize','a-date','a-avail','a-dist'].forEach(id=>byId(id).value='');
+  comboReset();
   editingStockId=null;
   byId('stock-form-title').textContent='➕ Add Seedling Record';
   byId('stock-save-btn').textContent='Add Record';
@@ -733,7 +768,7 @@ function buildCharts(){
   destroyChart('nursery');charts.nursery=new Chart(document.getElementById('chart-nursery'),{type:'bar',data:{labels:nL,datasets:[{label:'Balance',data:nL.map(n=>nMap[n]),backgroundColor:clrs}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}}}});
 }
 function showTab(tab,btn){
-  ['public-view','charts-view','report-view','enquiry-view','admin-view','eq-admin-view','dist-entry-view'].forEach(id=>document.getElementById(id).style.display='none');
+  ['public-view','charts-view','report-view','contact-view','enquiry-view','admin-view','eq-admin-view','dist-entry-view'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById(tab+'-view').style.display='block';
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
@@ -743,6 +778,7 @@ function showTab(tab,btn){
   if(tab==='eq-admin')renderEnquiryAdmin();
   if(tab==='dist-entry'){populateDistFilters();renderDistTable();loadDistRecords();loadResolvedEnquiries();}
   if(tab==='report')initReport();
+  if(tab==='contact')initContacts();
 }
 </script>
 
@@ -843,7 +879,9 @@ function updateSelectionSummary(){
   if(!keys.length){el.style.display='none';return;}
   const totalQty=keys.reduce((a,k)=>a+(selectedSeedlings[k].qty||0),0);
   const rows=keys.map(k=>`${selectedSeedlings[k].record.species} (${selectedSeedlings[k].record.nursery}): <strong>${selectedSeedlings[k].qty}</strong>`).join(' &nbsp;|&nbsp; ');
-  el.innerHTML=`✅ Selected ${keys.length} seedling type(s) | Total Qty: <strong>${totalQty}</strong><br><span style="font-size:12px">${rows}</span>`;
+  const sq=parseInt(document.getElementById('de-sanction_qnty').value)||0;
+  const warn=sq>0&&totalQty>sq?`<br><span style="color:#c62828;font-weight:600">⚠️ Exceeds Sanction Quantity (${sq}) by ${totalQty-sq}</span>`:'';
+  el.innerHTML=`✅ Selected ${keys.length} seedling type(s) | Total Qty: <strong>${totalQty}</strong><br><span style="font-size:12px">${rows}</span>${warn}`;
   el.style.display='block';
 }
 
@@ -882,6 +920,13 @@ async function submitDistribution(){
   const selKeys=Object.keys(selectedSeedlings);
   if(!selKeys.length){showDistError('Please select at least one seedling row from the table.');return;}
   if(!currentUser){showDistError('Please sign in as staff to submit.');return;}
+  const sanQty=parseInt(document.getElementById('de-sanction_qnty').value)||0;
+  if(sanQty>0){
+    const benNo=parseInt(document.getElementById('de-ben_Distributed_no').value)||0;
+    const lineTot=selKeys.reduce((a,k)=>a+(selectedSeedlings[k].qty||0),0);
+    if(benNo>sanQty){showDistError('No. of Seedlings to Distribute ('+benNo+') cannot exceed the Sanction Quantity ('+sanQty+').');return;}
+    if(lineTot>sanQty){showDistError('Total selected seedlings ('+lineTot+') cannot exceed the Sanction Quantity ('+sanQty+').');return;}
+  }
 
   const v=id=>document.getElementById(id).value.trim();
   const sanctionId=v('de-sanction_id');
@@ -915,7 +960,7 @@ async function submitDistribution(){
     loadSheetData();loadDistRecords();
   }catch(e){
     if(uploaded.length)await sb.storage.from('nursery-photos').remove(uploaded);
-    const msg=e&&e.code==='23505'?'Sanction ID "'+sanctionId+'" already exists.':(e&&e.message)||'Unknown error';
+    const msg=e&&e.code==='23514'&&/sanction/i.test(e.message||'')?e.message:e&&e.code==='23505'?'Sanction ID "'+sanctionId+'" already exists.':(e&&e.message)||'Unknown error';
     showDistError('Error: '+msg);
   }finally{
     btn.textContent=editingDist?'💾 Update Distribution':'✅ Submit Distribution';btn.disabled=false;
@@ -1090,6 +1135,111 @@ function applyEnquiry(id){
   if(skipped)showDistError('Note: some requested seedlings are out of stock or reduced to the available balance. Please review the selection.');
   else byId('de-error').style.display='none';
 }
+
+/* ── CONTACTS (CRUD) ── */
+let contacts=[],editingContactId=null;
+const isStaff=()=>currentRole==='admin'||currentRole==='staff';
+function buildNurseryChecks(){
+  const box=byId('ct-nurseries');const checked=new Set([...box.querySelectorAll('input:checked')].map(i=>i.value));
+  const names=[...new Set(records.map(r=>r.nursery).filter(Boolean))].sort();
+  box.innerHTML=names.map(n=>`<label><input type="checkbox" value="${esc(n)}" onchange="updateNurserySum()"${checked.has(n)?' checked':''}>${esc(n)}</label>`).join('')||'<span style="font-size:12px;color:#888">No nurseries loaded</span>';
+  updateNurserySum();
+}
+function selectedNurseries(){return [...byId('ct-nurseries').querySelectorAll('input:checked')].map(i=>i.value);}
+function updateNurserySum(){const n=selectedNurseries().length;byId('ct-n-sum').textContent=n?n+' selected ▾':'Select nurseries ▾';}
+const CT_KINDS={mobile:{ph:'10-digit mobile',type:'tel',max:10},landline:{ph:'Landline (with STD code)',type:'tel',max:25},email:{ph:'name@example.com',type:'email',max:150}};
+let ctMulti={mobile:[''],landline:[''],email:['']};
+function renderMulti(kind){
+  const k=CT_KINDS[kind];
+  byId('ct-'+kind+'-list').innerHTML=ctMulti[kind].map((v,i)=>`<div style="display:flex;gap:6px;margin-bottom:5px"><input type="${k.type}" maxlength="${k.max}" placeholder="${k.ph}" value="${esc(v)}" oninput="ctMulti['${kind}'][${i}]=this.value" style="flex:1;min-width:0">${ctMulti[kind].length>1?`<button type="button" class="abtn ar" style="padding:2px 9px" title="Remove" onclick="removeMulti('${kind}',${i})">✕</button>`:''}</div>`).join('')+(ctMulti[kind].length<10?`<button type="button" class="abtn ao" style="padding:3px 10px;font-size:12px" onclick="addMulti('${kind}')">➕ Add another</button>`:'');
+}
+function addMulti(kind){ctMulti[kind].push('');renderMulti(kind);}
+function removeMulti(kind,i){ctMulti[kind].splice(i,1);if(!ctMulti[kind].length)ctMulti[kind]=[''];renderMulti(kind);}
+function getMulti(kind){return [...new Set(ctMulti[kind].map(v=>v.trim()).filter(Boolean))];}
+function setMulti(kind,arr){ctMulti[kind]=(arr&&arr.length)?[...arr]:[''];renderMulti(kind);}
+function initContacts(){buildNurseryChecks();Object.keys(CT_KINDS).forEach(renderMulti);loadContacts();}
+async function loadContacts(){
+  const {data,error}=await sb.from('nursery_contacts').select('*').order('officer_name');
+  if(error){byId('ct-tbody').innerHTML='<tr><td colspan="10" class="empty">Could not load: '+esc(error.message)+'</td></tr>';return;}
+  contacts=data;renderContacts();
+}
+function renderContacts(){
+  const q=(byId('ct-search').value||'').toLowerCase(),staff=isStaff();
+  document.querySelectorAll('.ct-act').forEach(e=>e.style.display=staff?'':'none');
+  const data=contacts.filter(c=>!q||[c.officer_name,c.designation,c.office_name,(c.mobile_nos||[]).join(' '),(c.landline_nos||[]).join(' '),(c.email_addresses||[]).join(' '),(c.incharge_nurseries||[]).join(' ')].some(v=>String(v||'').toLowerCase().includes(q)));
+  const tb=byId('ct-tbody');
+  if(!data.length){tb.innerHTML='<tr><td colspan="10" class="empty">No contacts found.</td></tr>';return;}
+  const lines=(arr,mk)=>(arr&&arr.length)?arr.map(mk).join('<br>'):'—';
+  tb.innerHTML=data.map((c,i)=>`<tr><td>${i+1}</td><td><strong>${esc(c.officer_name)}</strong></td><td>${esc(c.designation)||'—'}</td><td>${esc(c.office_name)||'—'}</td><td>${lines(c.mobile_nos,m=>`<a href="tel:${esc(m)}">${esc(m)}</a>`)}</td><td>${lines(c.landline_nos,m=>esc(m))}</td><td>${lines(c.email_addresses,m=>`<a href="mailto:${esc(m)}">${esc(m)}</a>`)}</td><td style="min-width:160px">${esc(c.office_address)||'—'}</td><td style="min-width:160px;font-size:12px">${(c.incharge_nurseries||[]).map(esc).join('<br>')||'—'}</td>${staff?`<td style="white-space:nowrap"><button class="abtn ab" style="padding:3px 10px;font-size:12px" onclick="editContact(${c.id})">Edit</button>${currentRole==='admin'?` <button class="abtn ar" style="padding:3px 10px;font-size:12px" onclick="deleteContact(${c.id})">Delete</button>`:''}</td>`:''}</tr>`).join('');
+}
+async function saveContact(){
+  if(!(await hasSession()))return;
+  const v=id=>byId(id).value.trim();
+  const mobiles=getMulti('mobile'),landlines=getMulti('landline'),emails=getMulti('email');
+  if(!v('ct-name')){alert('Name of the Officer is required.');return;}
+  const badM=mobiles.find(m=>!/^\d{10}$/.test(m));if(badM){alert('Invalid mobile number: '+badM+' (must be 10 digits).');return;}
+  const badE=emails.find(e=>!/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(e));if(badE){alert('Invalid email address: '+badE);return;}
+  const row={officer_name:v('ct-name'),designation:v('ct-desig')||null,office_name:v('ct-office')||null,mobile_nos:mobiles,landline_nos:landlines,email_addresses:emails,office_address:v('ct-address')||null,incharge_nurseries:selectedNurseries()};
+  const q=editingContactId?sb.from('nursery_contacts').update({...row,updated_at:new Date().toISOString()}).eq('id',editingContactId):sb.from('nursery_contacts').insert(row);
+  const {data,error}=await q.select('id');
+  if(error){alert('Could not save: '+error.message);return;}
+  if(!data||!data.length){alert('Not saved: you are not signed in as staff.');return;}
+  clearContactForm();loadContacts();
+}
+function editContact(id){
+  const c=contacts.find(x=>x.id===id);if(!c)return;
+  const m={'ct-name':c.officer_name,'ct-desig':c.designation,'ct-office':c.office_name,'ct-address':c.office_address};
+  Object.entries(m).forEach(([k,v])=>byId(k).value=v==null?'':v);
+  setMulti('mobile',c.mobile_nos);setMulti('landline',c.landline_nos);setMulti('email',c.email_addresses);
+  buildNurseryChecks();
+  const set=new Set(c.incharge_nurseries||[]);
+  byId('ct-nurseries').querySelectorAll('input').forEach(i=>i.checked=set.has(i.value));
+  set.forEach(n=>{if(![...byId('ct-nurseries').querySelectorAll('input')].some(i=>i.value===n))byId('ct-nurseries').insertAdjacentHTML('beforeend',`<label><input type="checkbox" value="${esc(n)}" checked onchange="updateNurserySum()">${esc(n)}</label>`);});
+  updateNurserySum();
+  editingContactId=id;
+  byId('ct-form-title').textContent='✏️ Edit Contact';byId('ct-save-btn').textContent='Update Contact';byId('ct-cancel-btn').style.display='inline-block';
+  byId('ct-form-title').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function deleteContact(id){
+  const c=contacts.find(x=>x.id===id);
+  if(!confirm('Delete contact '+(c?c.officer_name:id)+'?'))return;
+  const {data,error}=await sb.from('nursery_contacts').delete().eq('id',id).select('id');
+  if(error){alert('Could not delete: '+error.message);return;}
+  if(!data||!data.length){alert('Nothing deleted: only a signed-in admin can delete contacts.');return;}
+  loadContacts();
+}
+function clearContactForm(){
+  ['ct-name','ct-desig','ct-office','ct-address'].forEach(id=>byId(id).value='');
+  setMulti('mobile',[]);setMulti('landline',[]);setMulti('email',[]);
+  byId('ct-nurseries').querySelectorAll('input').forEach(i=>i.checked=false);updateNurserySum();
+  editingContactId=null;
+  byId('ct-form-title').textContent='➕ Add Contact';byId('ct-save-btn').textContent='Add Contact';byId('ct-cancel-btn').style.display='none';
+}
+
+/* ── ADMIN ADD-RECORD DROPDOWNS ── */
+const ADMIN_COMBOS=[['a-district','district'],['a-mandal','mandal'],['a-division','division'],['a-range','range'],['a-nursery','nursery'],['a-scheme','scheme'],['a-species','species'],['a-bagsize','bagSize']];
+function populateAdminCombos(){
+  ADMIN_COMBOS.forEach(([id,key])=>{
+    const el=byId(id);if(!el)return;
+    const cur=comboVal(id),sel=el.value;
+    const vals=[...new Set(records.map(r=>r[key]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true}));
+    el.innerHTML='<option value="">-- Select --</option>'+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')+'<option value="__new__">➕ Add new…</option>';
+    if(sel==='__new__'){el.value='__new__';}else if(cur)setCombo(id,cur);
+  });
+}
+function comboChange(id){const nw=byId(id+'-new');nw.style.display=byId(id).value==='__new__'?'block':'none';if(nw.style.display==='block')nw.focus();}
+function comboVal(id){
+  const el=byId(id);
+  if(el.tagName==='SELECT')return (el.value==='__new__'?byId(id+'-new').value:el.value).trim();
+  return el.value.trim();
+}
+function setCombo(id,val){
+  const el=byId(id);val=val==null?'':String(val);
+  if(el.tagName!=='SELECT'){el.value=val;return;}
+  if(val&&![...el.options].some(o=>o.value===val)){const o=document.createElement('option');o.value=val;o.textContent=val;el.insertBefore(o,el.options[el.options.length-1]);}
+  el.value=val;byId(id+'-new').style.display='none';byId(id+'-new').value='';
+}
+function comboReset(){ADMIN_COMBOS.forEach(([id])=>{const el=byId(id);if(!el)return;el.value='';byId(id+'-new').value='';byId(id+'-new').style.display='none';});}
 // Auto-resize for Google Sites iframe embedding
 function sendHeight(){
   const h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight,800);
