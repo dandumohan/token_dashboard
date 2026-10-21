@@ -822,7 +822,7 @@ const DOCKET = {
 };
 const LOP_COLS = [["Sl.\nNo", 0.40], ["Component &\nSub Component", 1.55], ["LOP\nNo.", 0.42], ["Name of the Work\n& S.O. No.", 1.85],
   ["Particulars of Payment", 4.30], ["Amount of\nthe Voucher", 0.85], ["Remarks", 0.85]];
-const LOP_HEADER_H = 38, LOP_LINE_H = 9.2, LOP_ROW_PAD = 5.5, TOT_H = 15, DK_BOTTOM = 0.55 * INCH, TRAILER = 70;
+const LOP_HEADER_H = 38, LOP_NUM_H = 12, LOP_LINE_H = 9.2, LOP_ROW_PAD = 5.5, TOT_H = 15, DK_BOTTOM = 0.55 * INCH, TRAILER = 70;
 const FAIX_COLS = [["Sl.\nNo.", 0.35], ["Particulars of work", 2.85], ["D.S.O.\nNo.", 0.85], ["Amount", 0.70], ["Upto end of\nlast Month", 0.72], ["LOP\nNos", 0.50],
   ["Vr.\nNo.", 0.48], ["Amount", 0.65], ["Progressive total\nof expenditure", 0.80], ["Balance", 0.75], ["Component &\nSub Component", 1.05]];
 const FX_BAND = 15, FX_HEADER_H = FX_BAND * 3, FX_NUM_H = 10, FX_LINE_H = 9.0;
@@ -916,9 +916,13 @@ function drawLopBody(c, cs, pg) {
   const newPage = cont => {
     pg.n++; const y0 = docketPageHeader(c, pg.n, "LOP", cs.heading, cont, left, right);
     [xs, , cx] = faGeometry(LOP_COLS, left, right); cw = widthsOf(xs);
-    faHeader(c, LOP_COLS, xs, cx, y0, LOP_HEADER_H, 8);
-    c.setFont("Helvetica", 7); cx.forEach((x, i) => c.drawCentredString(x, y0 - LOP_HEADER_H + 5, String(i + 1)));
-    return y0 - LOP_HEADER_H;
+    const hb = y0 - LOP_HEADER_H - LOP_NUM_H;               // bottom of the whole header box (labels + column-number row)
+    c.setLineWidth(1);
+    c.rect(xs[0], hb, xs[xs.length - 1] - xs[0], LOP_HEADER_H + LOP_NUM_H);   // closed outer box
+    xs.slice(1, -1).forEach(x => c.line(x, hb, x, y0));                       // column dividers through the header
+    faHeader(c, LOP_COLS, xs, cx, y0, LOP_HEADER_H, 8);                       // labels + line under labels
+    c.setFont("Helvetica", 7); cx.forEach((x, i) => c.drawCentredString(x, hb + 3.5, String(i + 1)));
+    return hb;
   };
   let y = newPage(false), grand = 0;
   const rowH = (g, e, first) => {
