@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--@@CONFIG@@-->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seedling Portal</title>
@@ -106,7 +105,18 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
 .ckdd>div{position:absolute;z-index:20;background:#fff;border:1px solid #b5d4b5;border-radius:6px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);min-width:170px}
 .ckdd label{display:block;font-size:13px;color:#1a2e1a;margin:0;padding:2px 0}.ckdd input{width:auto;margin-right:6px}
 .rpt-meta{font-size:12px;color:#555;margin-bottom:8px}tfoot td{font-weight:700;background:#e8f5e9}
-@media print{#rpt-controls{display:none!important}}
+@media print{#rpt-controls{display:none!important}
+.table-wrap{overflow:visible!important}thead{display:table-header-group}tfoot{display:table-row-group}tr{page-break-inside:avoid}
+body.printing-report .header,body.printing-report .tabs{display:none!important}
+body.printing-report .section{box-shadow:none!important;border:none!important;padding:0!important}}
+.rpt-hdr th{background:#fff!important;color:#111!important;font-weight:400!important;text-transform:none!important;border-bottom:2px solid #2d6a2d;padding:10px 6px!important;white-space:normal!important}
+.av-card{border:1px solid #d4e8d4;border-radius:10px;padding:12px 14px;margin-bottom:14px;background:#fff}.av-card h4{color:#2d6a2d;margin:0 0 10px;font-size:14px}
+.av-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr)) auto;gap:8px;align-items:end;padding:8px;background:#f6fbf6;border-radius:8px;margin-bottom:8px}
+.av-cell label{display:block;font-size:11px;color:#2d6a2d;font-weight:600;margin-bottom:2px}.av-cell input,.av-cell select{width:100%;padding:6px 8px;border:1px solid #b5d4b5;border-radius:6px;font-size:13px}
+.av-tbl td{padding:4px 5px;vertical-align:middle}.av-tbl input,.av-tbl select{width:100%;min-width:110px;padding:5px 7px;border:1px solid #b5d4b5;border-radius:6px;font-size:13px}.av-tbl input[type=date]{min-width:135px}
+.av-photos{display:flex;flex-wrap:wrap;gap:10px}.av-ph{width:150px;font-size:11px}.av-ph img{width:150px;height:110px;object-fit:cover;border-radius:6px;border:1px solid #d4e8d4}.av-ph input{width:100%;padding:4px 6px;border:1px solid #b5d4b5;border-radius:4px;font-size:11px;margin-top:3px}
+body.restricted{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.restricted input,body.restricted textarea,body.restricted select{-webkit-user-select:text;user-select:text}
 </style>
 </head>
 <body>
@@ -143,6 +153,7 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
     <div class="header-right">
       <div class="user-chip">👤 <span id="user-label">—</span></div>
       <button class="hbtn" onclick="toggleLang()" id="lang-btn">తెలుగు</button>
+      <label class="hbtn" id="rs-toggle-wrap" style="display:none;align-items:center;gap:6px;cursor:pointer" title="Turn copy / select / right-click protection on or off for non-admin users"><input type="checkbox" id="rs-toggle" onchange="toggleRestrict(this.checked)" style="width:auto;margin:0">🔒 Copy protection</label>
       <button class="hbtn" onclick="logout()">Logout</button>
     </div>
   </div>
@@ -156,6 +167,7 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
     <button class="tab admin-only" onclick="showTab('eq-admin',this)">📬 Enquiries</button>
     <button class="tab admin-only" onclick="showTab('dist-entry',this)">📋 Distribution Entry</button>
     <button class="tab" onclick="showTab('contact',this)">📞 Contacts</button>
+    <button class="tab admin-only" onclick="showTab('avenue',this)">🌳 Avenue Plantation</button>
   </div>
   <div class="container">
     <div id="public-view">
@@ -234,6 +246,55 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
           <tbody id="ct-tbody"></tbody></table></div>
       </div>
     </div>
+    <div id="avenue-view" style="display:none">
+      <div class="section" id="av-list-sec">
+        <h3>🌳 Avenue Plantations</h3>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:space-between">
+          <input id="av-search" placeholder="Search plantation, species, officer..." oninput="renderAvenue()" style="max-width:300px;padding:7px 10px;border:1px solid #b5d4b5;border-radius:6px;font-size:13px">
+          <span><button class="abtn ag" onclick="avNew()">➕ New Plantation</button> <button class="abtn ao" onclick="loadAvenue()">🔄 Refresh</button></span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Name of Plantation</th><th>Kms</th><th>Plants Planted</th><th>Species</th><th>Estimate (₹)</th><th>Expenditure (₹)</th><th>Balance (₹)</th><th>Latest Survival %</th><th>Hand-over</th><th>Action</th></tr></thead>
+          <tbody id="av-tbody"></tbody></table></div>
+      </div>
+      <div class="section" id="av-form" style="display:none">
+        <h3 id="av-form-title">➕ New Avenue Plantation</h3>
+        <div class="av-card"><h4>1️⃣ Basic Details</h4>
+          <div class="form-grid">
+            <div class="fg" style="grid-column:1/-1"><label>Name of the Plantation *</label><input id="av-name" maxlength="200"></div>
+            <div class="fg"><label>Length (No. of Kms)</label><input id="av-kms" type="number" step="any" min="0"></div>
+            <div class="fg"><label>Total No. of Plants Planted</label><input id="av-plants" type="number" step="1" min="0" oninput="avTotals()"></div>
+          </div></div>
+        <div class="av-card"><h4>2️⃣ Location – Stretch Details</h4><div id="av-g-stretches"></div></div>
+        <div class="av-card"><h4>3️⃣ Planting Details – Species</h4><div id="av-g-species"></div><div id="av-sp-total" class="rpt-meta" style="margin-top:6px"></div></div>
+        <div class="av-card"><h4>4️⃣ Replacement of Species (History)</h4>
+          <p class="note" style="margin-bottom:8px">Record each replacement: the <strong>New Species</strong> planted and its number, and the existing species it replaced (<strong>Replaced With</strong>) and how many plants. Click <strong>Apply</strong> (or Save) and Planting Details – Species is updated automatically: the new species is added and the replaced number is deducted. Saved rows are kept as locked history.</p>
+          <div id="av-g-replacements"></div></div>
+        <div class="av-card"><h4>5️⃣ Sanction &amp; Expenditure (Year-wise)</h4>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12px;color:#555">
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="av-est-only" checked onchange="avRender('activities')" style="width:auto">Show only avenue plantation estimates</label>
+            <span id="av-est-status"></span>
+          </div>
+          <div id="av-g-activities"></div><div id="av-est-info" style="margin-top:8px;font-size:12px;color:#444"></div><div id="av-act-total" style="margin-top:6px;font-size:13px;font-weight:600;color:#2d6a2d"></div></div>
+        <div class="av-card"><h4>6️⃣ Inspection Details</h4><div id="av-g-inspections"></div></div>
+        <div class="av-card"><h4>7️⃣ Hand-over Details</h4>
+          <div class="form-grid">
+            <div class="fg"><label>Handed Over To (Department / Body)</label><input id="av-hto" maxlength="200"></div>
+            <div class="fg"><label>Handed Over To Whom (Name / Designation)</label><input id="av-htw" maxlength="200"></div>
+            <div class="fg"><label>Date of Hand-over</label><input id="av-hdt" type="date"></div>
+          </div></div>
+        <div class="av-card"><h4>8️⃣ Photographs &amp; Remarks</h4>
+          <div id="av-photos" class="av-photos" style="margin-bottom:8px"></div>
+          <input type="file" id="av-photo-input" accept="image/jpeg,image/png,image/webp" multiple onchange="avAddFiles(this.files)">
+          <p class="note">JPG / PNG / WebP, up to 5 MB each.</p>
+          <div class="fg" style="margin-top:8px"><label>Remarks</label><textarea id="av-remarks" rows="3" maxlength="2000" style="width:100%;padding:7px 9px;border:1px solid #b5d4b5;border-radius:6px;font-size:13px;font-family:inherit"></textarea></div>
+        </div>
+        <div class="btn-row">
+          <button class="abtn ag" id="av-save-btn" onclick="saveAvenue()">💾 Save Plantation</button>
+          <button class="abtn ao" onclick="avCancel()">Cancel</button>
+        </div>
+      </div>
+    </div>
     <div id="report-view" style="display:none">
       <div class="section" id="rpt-controls">
         <h3>📑 Reports</h3>
@@ -245,10 +306,23 @@ td.avail{color:#2d6a2d}td.dist{color:#e67e22}td.bal{color:#1565c0}
           <div class="fg"><label>Date To</label><input type="date" id="rf-to"></div>
         </div>
         <div class="form-grid" id="rpt-filters" style="margin-top:10px"></div>
+        <details style="margin-top:12px;border:1px solid #d4e8d4;border-radius:8px;padding:8px 12px">
+          <summary style="cursor:pointer;font-weight:600;color:#2d6a2d">🖋 Customize Print Header (repeats on every printed page)</summary>
+          <div class="form-grid" style="margin-top:10px">
+            <div class="fg"><label>Line 1 (Organization)</label><input id="rh-l1" maxlength="120" oninput="rhSave()" placeholder="e.g. Forest Department"></div>
+            <div class="fg"><label>Line 2 (Office / Division)</label><input id="rh-l2" maxlength="120" oninput="rhSave()"></div>
+            <div class="fg"><label>Line 3 (Address / Other)</label><input id="rh-l3" maxlength="160" oninput="rhSave()"></div>
+            <div class="fg"><label>Report Title (blank = automatic)</label><input id="rh-title" maxlength="120" oninput="rhSave()"></div>
+            <div class="fg"><label>Alignment</label><select id="rh-align" onchange="rhSave()"><option value="center">Centre</option><option value="left">Left</option><option value="right">Right</option></select></div>
+            <div class="fg"><label>Logo (optional, up to 300 KB)</label><input type="file" id="rh-logo" accept="image/*" onchange="rhLogo(this)"><button class="abtn ao" style="margin-top:6px;padding:3px 10px;font-size:12px" onclick="rhLogoClear()">Remove logo</button></div>
+            <div class="fg"><label><input type="checkbox" id="rh-meta" checked onchange="rhSave()" style="width:auto;margin-right:6px">Show date, filters and record count</label></div>
+          </div>
+          <button class="abtn ao" style="margin-top:8px;padding:4px 12px;font-size:12px" onclick="rhReset()">Reset header</button>
+        </details>
         <div class="btn-row">
           <button class="abtn ag" onclick="generateReport()">📊 Generate Report</button>
           <button class="abtn ab" onclick="rptCSV()">📥 Export CSV</button>
-          <button class="abtn ao" onclick="window.print()">🖨 Print</button>
+          <button class="abtn ao" onclick="printReport()">🖨 Print</button>
           <button class="abtn ao" onclick="resetReport()">Reset</button>
         </div>
         <p class="note">Abstract groups the selected fields and sums the measures. Detailed lists every record with the selected fields.</p>
@@ -478,6 +552,7 @@ async function enterAsStaff(user){
 }
 function continuePublic(){currentUser=null;currentRole='public';showApp('Public User (public)');}
 function showApp(label){
+  applyRestrictions();loadRestrictSetting();
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-label').textContent=label;
@@ -489,7 +564,7 @@ function showApp(label){
 let loggingOut=false;
 function sessionExpired(){
   if(!currentUser)return;
-  currentUser=null;currentRole='public';clearTimeout(refreshTimer);records=[];enquiries=[];
+  currentUser=null;currentRole='public';clearTimeout(refreshTimer);applyRestrictions();records=[];enquiries=[];
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   const err=document.getElementById('cred-err');err.textContent='Your session has expired. Please sign in again.';err.style.display='block';
@@ -504,7 +579,7 @@ async function logout(){
   loggingOut=true;
   await sb.auth.signOut({scope:'local'});
   loggingOut=false;
-  currentUser=null;currentRole='public';clearTimeout(refreshTimer);
+  currentUser=null;currentRole='public';clearTimeout(refreshTimer);applyRestrictions();
   records=[];enquiries=[];
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -769,7 +844,7 @@ function buildCharts(){
   destroyChart('nursery');charts.nursery=new Chart(document.getElementById('chart-nursery'),{type:'bar',data:{labels:nL,datasets:[{label:'Balance',data:nL.map(n=>nMap[n]),backgroundColor:clrs}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}}}});
 }
 function showTab(tab,btn){
-  ['public-view','charts-view','report-view','contact-view','enquiry-view','admin-view','eq-admin-view','dist-entry-view'].forEach(id=>document.getElementById(id).style.display='none');
+  ['public-view','charts-view','report-view','contact-view','avenue-view','enquiry-view','admin-view','eq-admin-view','dist-entry-view'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById(tab+'-view').style.display='block';
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
@@ -778,8 +853,10 @@ function showTab(tab,btn){
   if(tab==='charts')setTimeout(buildCharts,50);
   if(tab==='eq-admin')renderEnquiryAdmin();
   if(tab==='dist-entry'){populateDistFilters();renderDistTable();loadDistRecords();loadResolvedEnquiries();}
+  document.body.classList.remove('printing-report');
   if(tab==='report')initReport();
   if(tab==='contact')initContacts();
+  if(tab==='avenue')initAvenue();
 }
 </script>
 
@@ -1013,7 +1090,7 @@ function renderDistRecs(){
   tb.innerHTML=data.map(d=>{const ls=d.nursery_ntransaction||[],tot=ls.reduce((a,l)=>a+l.distributed,0),sid=esc(d.sanction_id).replace(/'/g,'&#39;');
     return `<tr><td>${esc(d.sanction_id)}</td><td>${esc(d.ben_name)}</td><td>${esc(d.ben_mobile_no)}</td><td>${esc(d.ben_dist_dt)}</td><td>${esc(d.mandal)||'—'}</td><td style="font-size:12px">${ls.map(lineTxt).join('<br>')}</td><td class="num">${fmt(tot)}</td><td style="white-space:nowrap"><button class="abtn ao" style="padding:3px 10px;font-size:12px" onclick="viewDist('${sid}')">View</button> <button class="abtn ab" style="padding:3px 10px;font-size:12px" onclick="editDist('${sid}')">Edit</button>${currentRole==='admin'?` <button class="abtn ar" style="padding:3px 10px;font-size:12px" onclick="delDist('${sid}')">Delete</button>`:''}</td></tr>`;}).join('');
 }
-function closeModal(){byId('modal').style.display='none';}
+function closeModal(){byId('modal').style.display='none';byId('modal-body').style.maxWidth='760px';}
 async function viewDist(sid){
   const d=distRecs.find(x=>x.sanction_id===sid);if(!d)return;
   const F=[['Sanction ID','sanction_id'],['Scheme','sanction_scheme'],['Sanction Date','sanction_dt'],['Sanctioned By','sanction_by'],['Sanction Qty','sanction_qnty'],['Free No.','sanction_free_no'],['Cost No.','sanction_cost_no'],['Rate (₹)','sanction_rate'],['Beneficiary','ben_name'],['Mobile','ben_mobile_no'],['Email','ben_email_id'],['Seedlings','ben_distributed_no'],['Distribution Date','ben_dist_dt'],['Planted Date','planted_dt'],['Mandal','mandal'],['Gramapanchayat','gramapanchayat'],['Village/Habitation','village_hab'],['Latitude','geo_lat'],['Longitude','geo_long']];
@@ -1055,6 +1132,7 @@ const RPT_MEAS=[['available','Available'],['distributed','Distributed'],['balanc
 let rptHead=[],rptRows=[],rptTitle='report';
 const rv=(r,k)=>k==='balance'?r.available-r.distributed:r[k];
 function initReport(){
+  rhFill();
   if(!byId('rpt-dims').innerHTML){
     byId('rpt-dims').innerHTML=RPT_DIMS.map(d=>`<label><input type="checkbox" id="rd-${d[0]}" checked>${d[1]}</label>`).join('');
     byId('rpt-meas').innerHTML=RPT_MEAS.map(m=>`<label><input type="checkbox" id="rm-${m[0]}" checked>${m[1]}</label>`).join('');
@@ -1094,7 +1172,7 @@ function generateReport(){
   rptHead=head;rptRows=rows.concat(rows.length?[tot]:[]);rptTitle=(type==='detailed'?'Detailed':'Abstract')+'_Report';
   const fmtc=(v,i)=>i>=nd&&typeof v==='number'?fmt(v):esc(v);
   const metaTxt=['Generated: '+new Date().toLocaleString('en-IN'),...flt.map(([d,v])=>d[1]+': '+v),from?'From: '+from:'',to?'To: '+to:'',data.length+' stock record(s)'].filter(Boolean).join(' | ');
-  byId('rpt-out').innerHTML='<h3>'+(type==='detailed'?'Detailed':'Abstract')+' Report</h3><div class="rpt-meta">'+esc(metaTxt)+'</div>'+(rows.length?'<div class="table-wrap"><table><thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map((v,i)=>'<td'+(i>=nd?' class="num"':'')+'>'+fmtc(v,i)+'</td>').join('')+'</tr>').join('')+'</tbody><tfoot><tr>'+tot.map((v,i)=>'<td'+(i>=nd?' class="num"':'')+'>'+fmtc(v,i)+'</td>').join('')+'</tr></tfoot></table></div>':'<p class="empty">No records match the selection.</p>');
+  const hdrHtml=rptHeaderHtml(type,metaTxt);byId('rpt-out').innerHTML=(rows.length?'<div class="table-wrap"><table><thead><tr class="rpt-hdr"><th colspan="'+head.length+'">'+hdrHtml+'</th></tr><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map((v,i)=>'<td'+(i>=nd?' class="num"':'')+'>'+fmtc(v,i)+'</td>').join('')+'</tr>').join('')+'</tbody><tfoot><tr>'+tot.map((v,i)=>'<td'+(i>=nd?' class="num"':'')+'>'+fmtc(v,i)+'</td>').join('')+'</tr></tfoot></table></div>':hdrHtml+'<p class="empty">No records match the selection.</p>');
 }
 function rptCSV(){
   if(!rptRows.length){alert('Generate a report first.');return;}
@@ -1241,6 +1319,375 @@ function setCombo(id,val){
   el.value=val;byId(id+'-new').style.display='none';byId(id+'-new').value='';
 }
 function comboReset(){ADMIN_COMBOS.forEach(([id])=>{const el=byId(id);if(!el)return;el.value='';byId(id+'-new').value='';byId(id+'-new').style.display='none';});}
+
+/* ── CUSTOM REPORT HEADER (repeats on every printed page via <thead>) ── */
+const RH_KEY='nursery_rpt_header';let rhMem=null,rptLogo='';
+function rhLoad(){let o=null;try{o=JSON.parse(localStorage.getItem(RH_KEY)||'null');}catch(e){}return Object.assign({l1:'',l2:'',l3:'',title:'',align:'center',meta:true,logo:''},o||rhMem||{});}
+function rhRead(){return {l1:byId('rh-l1').value.trim(),l2:byId('rh-l2').value.trim(),l3:byId('rh-l3').value.trim(),title:byId('rh-title').value.trim(),align:byId('rh-align').value,meta:byId('rh-meta').checked,logo:rptLogo};}
+function rhFill(){
+  const h=rhLoad();if(!byId('rh-l1'))return;
+  byId('rh-l1').value=h.l1;byId('rh-l2').value=h.l2;byId('rh-l3').value=h.l3;byId('rh-title').value=h.title;byId('rh-align').value=h.align;byId('rh-meta').checked=!!h.meta;rptLogo=h.logo||'';
+}
+function rhSave(){const o=rhRead();rhMem=o;try{localStorage.setItem(RH_KEY,JSON.stringify(o));}catch(e){}}
+function rhLogo(inp){
+  const f=inp.files[0];if(!f)return;
+  if(!/^image\//.test(f.type)){alert('Please choose an image file.');inp.value='';return;}
+  if(f.size>300*1024){alert('Logo is too large. Please use an image under 300 KB.');inp.value='';return;}
+  const r=new FileReader();r.onload=()=>{rptLogo=r.result;rhSave();};r.readAsDataURL(f);
+}
+function rhLogoClear(){rptLogo='';byId('rh-logo').value='';rhSave();}
+function rhReset(){rptLogo='';byId('rh-logo').value='';['rh-l1','rh-l2','rh-l3','rh-title'].forEach(i=>byId(i).value='');byId('rh-align').value='center';byId('rh-meta').checked=true;rhSave();}
+function rptHeaderHtml(type,metaTxt){
+  const h=rhRead(),al=['left','center','right'].includes(h.align)?h.align:'center';
+  const title=h.title||((type==='detailed'?'Detailed':'Abstract')+' Report');
+  return '<div style="text-align:'+al+';color:#111">'
+    +(h.logo?'<img src="'+esc(h.logo)+'" alt="" style="height:56px;max-width:160px;object-fit:contain;margin-bottom:4px">':'')
+    +(h.l1?'<div style="font-size:18px;font-weight:700">'+esc(h.l1)+'</div>':'')
+    +(h.l2?'<div style="font-size:14px;font-weight:600">'+esc(h.l2)+'</div>':'')
+    +(h.l3?'<div style="font-size:12px">'+esc(h.l3)+'</div>':'')
+    +'<div style="font-size:15px;font-weight:700;margin-top:4px;color:#2d6a2d">'+esc(title)+'</div>'
+    +(h.meta?'<div style="font-size:11px;color:#555;margin-top:2px">'+esc(metaTxt)+'</div>':'')
+    +'</div>';
+}
+function printReport(){
+  generateReport();
+  if(!rptRows.length){return;}
+  document.body.classList.add('printing-report');
+  window.onafterprint=()=>document.body.classList.remove('printing-report');
+  window.print();
+}
+
+/* ── AVENUE PLANTATION ── */
+const AV_YEARS=(()=>{const a=[];for(let y=2008;y<=2032;y++)a.push(y+'-'+String((y+1)%100).padStart(2,'0'));return a;})();
+const AV_GROUPS={
+  stretches:{add:'➕ Add stretch',fields:[['stretch_no','Stretch No.','text'],['stretch_from','Stretch From (km)','text'],['stretch_to','Stretch To (km)','text'],['latitude','Latitude','geo'],['longitude','Longitude','geo']]},
+  species:{add:'➕ Add species',fields:[['species','Species','species'],['no_of_plants','No. of Plants','num'],['height_m','Height (m)','num'],['girth_cm','Girth (cm)','num']]},
+  replacements:{add:'➕ Add replacement',fields:[]},
+  activities:{add:'➕ Add year',fields:[['year','Year','year'],['activity','Activity','select',['Raising','Maintenance']],['planting_from','Planting Period From','date'],['planting_to','Planting Period To','date'],['esti_no','Estimate No.','estimate'],['esti_amount','Estimate Amount (₹)','num'],['expenditure','Expenditure (₹)','num'],['balance','Balance (₹)','calc']]},
+  inspections:{add:'➕ Add inspection',fields:[['inspection_date','Inspection Date','date'],['officers','Inspecting Officer(s) – comma separated','text'],['survival_pct','Survival %','num'],['remarks','Remarks of Officer','text']]}
+};
+let av={id:null,species:[],replacements:[],stretches:[],activities:[],inspections:[],photos:[],files:[]},avList=[],avOrigPhotos=[];
+const inr=v=>'₹'+(Number(v)||0).toLocaleString('en-IN');
+const nn=v=>(v===''||v==null)?null:Number(v);
+const sv=v=>(v==null||String(v).trim()==='')?null:String(v).trim();
+function avStockSpecies(){return [...new Set(records.map(r=>r.species).filter(Boolean))].sort();}
+function avCell(g,i,f,r,bare){
+  const [k,label,type,opt]=f;let inp;
+  const set=`avSet('${g}',${i},'${k}',this.value)`;
+  if(type==='calc')inp=`<div id="av-bal-${i}" style="padding:6px 0;font-weight:700">${inr((+r.esti_amount||0)-(+r.expenditure||0))}</div>`;
+  else if(type==='select'||type==='year'){
+    const list=type==='year'?AV_YEARS:opt;const l=(r[k]&&!list.includes(r[k]))?[r[k],...list]:list;
+    inp=`<select onchange="${set}"><option value="">-- Select --</option>${l.map(o=>`<option${r[k]===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  }else if(type==='plspecies'){
+    const names=[...new Set(av.species.map(x=>(x.species||'').trim()).filter(Boolean))];
+    const l=(r[k]&&!names.includes(r[k]))?[r[k],...names]:names;
+    inp=`<select onchange="${set}"><option value="">-- Select --</option>${l.map(o=>`<option${r[k]===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  }else if(type==='stocksp'){
+    if(r._man)inp=`<div style="display:flex;gap:4px"><input placeholder="New species" value="${esc(r[k]||'')}" oninput="${set}"><button type="button" class="abtn ao" style="padding:2px 8px" title="Back to list" onclick="avRsList(${i})">↩</button></div>`;
+    else{const l=avStockSpecies();const all=(r[k]&&!l.includes(r[k]))?[r[k],...l]:l;
+      inp=`<select onchange="avRsChange(${i},this.value)"><option value="">-- Select --</option>${all.map(o=>`<option${r[k]===o?' selected':''}>${esc(o)}</option>`).join('')}<option value="__new__">➕ Add new…</option></select>`;}
+  }else if(type==='estimate'){
+    if(r._manual)inp=`<div style="display:flex;gap:4px"><input placeholder="Estimate No." value="${esc(r.esti_no||'')}" oninput="${set}"><button type="button" class="abtn ao" style="padding:2px 8px" title="Back to list" onclick="avEstList(${i})">↩</button></div>`;
+    else{const l=avEstOptions();const cur=r.esti_no&&!l.some(e=>e.esti_no===r.esti_no)?[{esti_no:r.esti_no}]:[];
+      inp=`<select onchange="avEstPick(${i},this.value)"><option value="">-- Select estimate --</option>${[...cur,...l].map(e=>`<option value="${esc(e.esti_no)}" title="${esc(e.esti_description||'')}"${r.esti_no===e.esti_no?' selected':''}>${esc(e.esti_no)}${e.scheme?' — '+esc(e.scheme):''}${e.est_cost!=null?' — '+inr(e.est_cost):''}</option>`).join('')}<option value="__manual__">✍️ Enter manually…</option></select>`;}
+  }else if(type==='species'){
+    if(r._new)inp=`<div style="display:flex;gap:4px"><input placeholder="New species" value="${esc(r.species||'')}" oninput="${set}"><button type="button" class="abtn ao" style="padding:2px 8px" title="Back to list" onclick="avSpList(${i})">↩</button></div>`;
+    else{const l=avStockSpecies();const all=(r.species&&!l.includes(r.species))?[r.species,...l]:l;
+      inp=`<select onchange="avSpChange(${i},this.value)"><option value="">-- Select --</option>${all.map(o=>`<option${r.species===o?' selected':''}>${esc(o)}</option>`).join('')}<option value="__new__">➕ Add new…</option></select>`;}
+  }else inp=`<input type="${type==='num'||type==='geo'?'number':type}" ${type==='num'?'step="any" min="0"':type==='geo'?'step="any"':''} value="${esc(r[k]==null?'':r[k])}" oninput="${set}">`;
+  return bare?inp:`<div class="av-cell"><label>${label}</label>${inp}</div>`;
+}
+function avRenderAct(){
+  const G=AV_GROUPS.activities;
+  byId('av-g-activities').innerHTML='<div class="table-wrap"><table class="av-tbl"><thead><tr><th>#</th>'+G.fields.map(f=>'<th>'+f[1]+'</th>').join('')+'<th></th></tr></thead><tbody>'
+    +av.activities.map((r,i)=>'<tr><td>'+(i+1)+'</td>'+G.fields.map(f=>'<td>'+avCell('activities',i,f,r,true)+'</td>').join('')+'<td><button type="button" class="abtn ar" style="padding:3px 9px" title="Remove row" onclick="avDel(\'activities\','+i+')">✕</button></td></tr>').join('')
+    +'</tbody><tfoot><tr><td></td><td colspan="5">Total</td><td class="num" id="av-t-est"></td><td class="num" id="av-t-exp"></td><td class="num" id="av-t-bal"></td><td></td></tr></tfoot></table></div>'
+    +'<button type="button" class="abtn ao" style="padding:4px 12px;font-size:12px;margin-top:8px" onclick="avAdd(\'activities\')">'+G.add+'</button>';
+  avTotals();avEstInfo();
+}
+function avRender(g){
+  if(g==='activities'){avRenderAct();return;}
+  if(g==='replacements'){avRenderRepl();return;}
+  const G=AV_GROUPS[g];
+  byId('av-g-'+g).innerHTML=av[g].map((r,i)=>`<div class="av-row">${G.fields.map(f=>avCell(g,i,f,r)).join('')}<button type="button" class="abtn ar" style="padding:4px 10px" title="Remove row" onclick="avDel('${g}',${i})">✕</button></div>`).join('')+`<button type="button" class="abtn ao" style="padding:4px 12px;font-size:12px" onclick="avAdd('${g}')">${G.add}</button>`;
+  avTotals();
+  if(g==='species'&&byId('av-g-replacements'))avRender('replacements');
+}
+function avAdd(g){av[g].push({});avRender(g);}
+function avDel(g,i){av[g].splice(i,1);avRender(g);}
+function avSpChange(i,v){if(v==='__new__'){av.species[i]._new=true;av.species[i].species='';avRender('species');}else avSet('species',i,'species',v);}
+const RS_FIELDS=[['replaced_on','Date of Replacement','date'],['new_species','New Species','stocksp'],['new_species_no','New Species No.','num'],['replaced_species','Replaced With (from Planting Details)','plspecies'],['replace_no','Replace No. (plants replaced)','num'],['remarks','Remarks','text']];
+function avRsBlank(r){return !(r.new_species||r.replaced_species||(r.new_species_no!==undefined&&r.new_species_no!=='')||(r.replace_no!==undefined&&r.replace_no!=='')||r.replaced_on||r.remarks);}
+function avRsChange(i,v){if(v==='__new__'){av.replacements[i]._man=true;av.replacements[i].new_species='';avRender('replacements');}else avSet('replacements',i,'new_species',v);}
+function avRsList(i){av.replacements[i]._man=false;av.replacements[i].new_species='';avRender('replacements');}
+function avRenderRepl(){
+  byId('av-g-replacements').innerHTML=av.replacements.map((r,i)=>{
+    const locked=!!r._applied;
+    const cells=RS_FIELDS.map(f=>locked?`<div class="av-cell"><label>${f[1]}</label><input disabled value="${esc(r[f[0]]==null?'':r[f[0]])}"></div>`:avCell('replacements',i,f,r)).join('');
+    const act=locked?(r._fresh?`<span style="font-size:11px;color:#2d6a2d">✔ Applied</span><button type="button" class="abtn ao" style="padding:3px 9px;font-size:11px" onclick="avRsUndo(${i})">Undo</button>`:'<span style="font-size:11px;color:#2d6a2d" title="Saved history is locked">🔒 Saved</span>')
+      :`<button type="button" class="abtn ag" style="padding:3px 9px;font-size:12px" onclick="avRsApply(${i})">Apply</button><button type="button" class="abtn ar" style="padding:3px 9px" title="Remove row" onclick="avDel('replacements',${i})">✕</button>`;
+    return `<div class="av-row">${cells}<div style="display:flex;flex-direction:column;gap:4px">${act}</div></div>`;}).join('')
+   +'<button type="button" class="abtn ao" style="padding:4px 12px;font-size:12px" onclick="avAdd(\'replacements\')">➕ Add replacement</button>';
+}
+function avRsApply(i){
+  const r=av.replacements[i];if(!r||r._applied)return true;
+  const ns=(r.new_species||'').trim(),os=(r.replaced_species||'').trim(),nno=Number(r.new_species_no),rno=Number(r.replace_no),n='Replacement row '+(i+1)+': ';
+  if(!r.replaced_on){alert(n+'enter the Date of Replacement.');return false;}
+  if(!ns){alert(n+'select the New Species.');return false;}
+  if(!Number.isInteger(nno)||nno<=0){alert(n+'New Species No. must be a whole number greater than 0.');return false;}
+  if(!os){alert(n+'select the species being replaced (Replaced With).');return false;}
+  if(ns===os){alert(n+'the New Species must be different from the species it replaces.');return false;}
+  if(!Number.isInteger(rno)||rno<=0){alert(n+'Replace No. must be a whole number greater than 0.');return false;}
+  const old=av.species.find(x=>(x.species||'').trim()===os);
+  if(!old){alert(n+'"'+os+'" is not in Planting Details – Species.');return false;}
+  const cur=Number(old.no_of_plants)||0;
+  if(rno>cur){alert(n+'cannot replace '+rno+' plants of '+os+' – only '+cur+' recorded in Planting Details.');return false;}
+  old.no_of_plants=cur-rno;
+  const nw=av.species.find(x=>(x.species||'').trim()===ns);
+  if(nw){nw.no_of_plants=(Number(nw.no_of_plants)||0)+nno;r._created=false;}
+  else{
+    const blank=av.species.find(x=>!(x.species||'').trim()&&(x.no_of_plants===undefined||x.no_of_plants==='')&&!x.height_m&&!x.girth_cm);
+    if(blank){blank.species=ns;blank.no_of_plants=nno;blank._new=false;}else av.species.push({species:ns,no_of_plants:nno,height_m:'',girth_cm:''});
+    r._created=true;
+  }
+  r._applied=true;r._fresh=true;
+  avRender('species');return true;
+}
+function avRsUndo(i){
+  const r=av.replacements[i];if(!r||!r._fresh)return;
+  const old=av.species.find(x=>(x.species||'').trim()===r.replaced_species);
+  const nw=av.species.find(x=>(x.species||'').trim()===r.new_species);
+  if(old)old.no_of_plants=(Number(old.no_of_plants)||0)+Number(r.replace_no);
+  if(nw){nw.no_of_plants=Math.max(0,(Number(nw.no_of_plants)||0)-Number(r.new_species_no));
+    if(r._created&&nw.no_of_plants<=0){av.species.splice(av.species.indexOf(nw),1);if(!av.species.length)av.species.push({});}}
+  r._applied=false;r._fresh=false;r._created=false;
+  avRender('species');
+}
+function avSpList(i){av.species[i]._new=false;av.species[i].species='';avRender('species');}
+function avSet(g,i,k,v){
+  av[g][i][k]=v;
+  if(g==='activities'&&(k==='esti_amount'||k==='expenditure')){const b=byId('av-bal-'+i);if(b)b.textContent=inr((+av.activities[i].esti_amount||0)-(+av.activities[i].expenditure||0));}
+  if(g==='activities'||g==='species')avTotals();
+  if(g==='species'&&k==='species')avRender('replacements');
+}
+function avTotals(){
+  const sp=av.species.reduce((a,r)=>a+(+r.no_of_plants||0),0),pl=+byId('av-plants').value||0;
+  byId('av-sp-total').textContent='Species total: '+sp.toLocaleString('en-IN')+(pl?' of '+pl.toLocaleString('en-IN')+' planted'+(sp>pl?' ⚠️ exceeds total planted':''):'');
+  const e=av.activities.reduce((a,r)=>a+(+r.esti_amount||0),0),x=av.activities.reduce((a,r)=>a+(+r.expenditure||0),0);
+  const put=(id,v)=>{const el=byId(id);if(el)el.textContent=v;};
+  put('av-t-est',inr(e));put('av-t-exp',inr(x));put('av-t-bal',inr(e-x));
+  byId('av-act-total').textContent='';
+}
+function avPhotosRender(){
+  byId('av-photos').innerHTML=av.photos.map((p,i)=>`<div class="av-ph">${p.url?`<img src="${esc(p.url)}" alt="">`:'<div style="height:110px;background:#eee;border-radius:6px"></div>'}<input placeholder="Caption" value="${esc(p.caption||'')}" oninput="av.photos[${i}].caption=this.value"><button type="button" class="abtn ar" style="padding:2px 8px;font-size:11px;margin-top:3px" onclick="av.photos.splice(${i},1);avPhotosRender()">Remove</button></div>`).join('')
+   +av.files.map((p,i)=>`<div class="av-ph"><img src="${esc(p.url)}" alt=""><input placeholder="Caption" value="${esc(p.caption||'')}" oninput="av.files[${i}].caption=this.value"><button type="button" class="abtn ar" style="padding:2px 8px;font-size:11px;margin-top:3px" onclick="URL.revokeObjectURL(av.files[${i}].url);av.files.splice(${i},1);avPhotosRender()">Remove</button> <span style="color:#2d6a2d">new</span></div>`).join('');
+}
+function avAddFiles(list){
+  [...list].forEach(f=>{
+    if(!/^image\/(jpeg|png|webp)$/.test(f.type)){alert(f.name+': only JPG, PNG or WebP images are allowed.');return;}
+    if(f.size>5*1024*1024){alert(f.name+' is larger than 5 MB.');return;}
+    av.files.push({file:f,caption:'',url:URL.createObjectURL(f)});
+  });
+  byId('av-photo-input').value='';avPhotosRender();
+}
+function avFill(p){
+  byId('av-name').value=p?p.name:'';byId('av-kms').value=p&&p.length_kms!=null?p.length_kms:'';byId('av-plants').value=p&&p.plants_planted!=null?p.plants_planted:'';
+  byId('av-hto').value=p&&p.hand_over_to||'';byId('av-htw').value=p&&p.hand_over_to_whom||'';byId('av-hdt').value=p&&p.dt_handover||'';byId('av-remarks').value=p&&p.remarks||'';
+  const by=(a,f)=>(a||[]).slice().sort(f||((x,y)=>x.id-y.id));
+  const b=v=>v==null?'':v;
+  av.species=by(p&&p.avenue_plantation_species).map(r=>({species:r.species,no_of_plants:b(r.no_of_plants),height_m:b(r.height_m),girth_cm:b(r.girth_cm)}));
+  av.replacements=by(p&&p.avenue_plantation_replacements).map(r=>({new_species:b(r.new_species),new_species_no:b(r.new_species_no),replaced_species:b(r.replaced_species),replace_no:b(r.replace_no),replaced_on:b(r.replaced_on),remarks:b(r.remarks),_applied:true}));
+  av.stretches=by(p&&p.avenue_plantation_stretches).map(r=>({stretch_no:b(r.stretch_no),stretch_from:b(r.stretch_from),stretch_to:b(r.stretch_to),latitude:b(r.latitude),longitude:b(r.longitude)}));
+  av.activities=by(p&&p.avenue_plantation_activities).map(r=>({year:b(r.year),activity:b(r.activity),planting_from:b(r.planting_from),planting_to:b(r.planting_to),esti_no:b(r.esti_no),esti_amount:b(r.esti_amount),expenditure:b(r.expenditure)}));
+  av.inspections=by(p&&p.avenue_plantation_inspections,(x,y)=>String(x.inspection_date||'').localeCompare(String(y.inspection_date||''))).map(r=>({inspection_date:b(r.inspection_date),officers:(r.officers||[]).join(', '),survival_pct:b(r.survival_pct),remarks:b(r.remarks)}));
+  av.photos=by(p&&p.avenue_plantation_photos).map(r=>({path:r.path,caption:r.caption||'',url:''}));
+  av.files.forEach(f=>URL.revokeObjectURL(f.url));av.files=[];
+  Object.keys(AV_GROUPS).forEach(g=>{if(!av[g].length)av[g].push({});avRender(g);});
+  avPhotosRender();
+  if(av.photos.length)sb.storage.from('avenue-photos').createSignedUrls(av.photos.map(x=>x.path),900).then(({data})=>{if(data)data.forEach(d=>{const ph=av.photos.find(x=>x.path===d.path);if(ph)ph.url=d.signedUrl||'';});avPhotosRender();});
+}
+function avNew(){av.id=null;avOrigPhotos=[];avFill(null);byId('av-form-title').textContent='➕ New Avenue Plantation';byId('av-form').style.display='block';byId('av-form').scrollIntoView({behavior:'smooth',block:'start'});}
+function avCancel(){byId('av-form').style.display='none';av.id=null;}
+function avEdit(id){
+  const p=avList.find(x=>x.id===id);if(!p)return;
+  av.id=id;avOrigPhotos=(p.avenue_plantation_photos||[]).map(x=>x.path);avFill(p);
+  byId('av-form-title').textContent='✏️ Edit Avenue Plantation';byId('av-form').style.display='block';byId('av-form').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function initAvenue(){loadAvenue();loadAvenueEstimates();}
+async function loadAvenue(){
+  const {data,error}=await sb.from('avenue_plantations').select('*, avenue_plantation_species(*), avenue_plantation_replacements(*), avenue_plantation_stretches(*), avenue_plantation_activities(*), avenue_plantation_inspections(*), avenue_plantation_photos(*)').order('name');
+  if(error){byId('av-tbody').innerHTML='<tr><td colspan="11" class="empty">Could not load: '+esc(error.message)+'</td></tr>';return;}
+  avList=data;renderAvenue();
+}
+function renderAvenue(){
+  const q=(byId('av-search').value||'').toLowerCase();
+  const data=avList.filter(p=>!q||[p.name,p.hand_over_to,p.hand_over_to_whom,...(p.avenue_plantation_species||[]).map(x=>x.species),...(p.avenue_plantation_inspections||[]).flatMap(x=>x.officers||[])].some(v=>String(v||'').toLowerCase().includes(q)));
+  const tb=byId('av-tbody');
+  if(!data.length){tb.innerHTML='<tr><td colspan="11" class="empty">No avenue plantations yet. Click “New Plantation”.</td></tr>';return;}
+  tb.innerHTML=data.map((p,i)=>{
+    const acts=p.avenue_plantation_activities||[],e=acts.reduce((a,r)=>a+Number(r.esti_amount||0),0),x=acts.reduce((a,r)=>a+Number(r.expenditure||0),0);
+    const insp=(p.avenue_plantation_inspections||[]).filter(r=>r.survival_pct!=null).sort((a,b)=>String(b.inspection_date||'').localeCompare(String(a.inspection_date||'')))[0];
+    const sp=[...new Set((p.avenue_plantation_species||[]).map(r=>r.species))];
+    return `<tr><td>${i+1}</td><td><strong>${esc(p.name)}</strong></td><td class="num">${p.length_kms==null?'—':esc(p.length_kms)}</td><td class="num">${p.plants_planted==null?'—':fmt(p.plants_planted)}</td><td style="font-size:12px">${sp.map(esc).join(', ')||'—'}</td><td class="num">${fmt(e)}</td><td class="num">${fmt(x)}</td><td class="num">${fmt(e-x)}</td><td class="num">${insp?esc(insp.survival_pct)+'%':'—'}</td><td style="font-size:12px">${p.dt_handover?esc(p.dt_handover)+'<br>'+esc(p.hand_over_to||''):'Not handed over'}</td><td style="white-space:nowrap"><button class="abtn ao" style="padding:3px 10px;font-size:12px" onclick="avView(${p.id})">View</button> <button class="abtn ab" style="padding:3px 10px;font-size:12px" onclick="avEdit(${p.id})">Edit</button>${currentRole==='admin'?` <button class="abtn ar" style="padding:3px 10px;font-size:12px" onclick="avDelete(${p.id})">Delete</button>`:''}</td></tr>`;}).join('');
+}
+function avValidate(){
+  if(!byId('av-name').value.trim())return 'Name of the Plantation is required.';
+  const int=(v,l)=>v!==''&&v!=null&&(!Number.isInteger(Number(v))||Number(v)<0)?l+' must be a whole number (0 or more).':'';
+  let m=int(byId('av-plants').value,'Total plants planted');if(m)return m;
+  if(byId('av-kms').value!==''&&Number(byId('av-kms').value)<0)return 'No. of Kms cannot be negative.';
+  for(const [i,r] of av.species.entries()){m=int(r.no_of_plants,'No. of plants (species row '+(i+1)+')');if(m)return m;}
+  for(const [i,r] of av.stretches.entries()){
+    if(r.latitude!==''&&r.latitude!=null&&Math.abs(Number(r.latitude))>90)return 'Latitude in stretch row '+(i+1)+' must be between -90 and 90.';
+    if(r.longitude!==''&&r.longitude!=null&&Math.abs(Number(r.longitude))>180)return 'Longitude in stretch row '+(i+1)+' must be between -180 and 180.';}
+  for(const [i,r] of av.activities.entries()){
+    if(r.planting_from&&r.planting_to&&r.planting_to<r.planting_from)return 'Planting period "To" is before "From" in year row '+(i+1)+'.';
+    if(Number(r.esti_amount)<0||Number(r.expenditure)<0)return 'Amounts cannot be negative (year row '+(i+1)+').';}
+  for(const [i,r] of av.inspections.entries()){const s=r.survival_pct;if(s!==''&&s!=null&&(Number(s)<0||Number(s)>100))return 'Survival % must be between 0 and 100 (inspection row '+(i+1)+').';}
+  return '';
+}
+async function saveAvenue(){
+  if(!(await hasSession()))return;
+  for(let i=0;i<av.replacements.length;i++){const r=av.replacements[i];if(!r._applied&&!avRsBlank(r)&&!avRsApply(i))return;}
+  const err=avValidate();if(err){alert(err);return;}
+  const btn=byId('av-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  const uploaded=[];
+  try{
+    const newPhotos=[];
+    for(const f of av.files){
+      const ext=(f.file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+      const path=Date.now()+'-'+Math.random().toString(36).slice(2,8)+'/'+Math.random().toString(36).slice(2,10)+'.'+ext;
+      const {error}=await sb.storage.from('avenue-photos').upload(path,f.file,{contentType:f.file.type});
+      if(error)throw new Error('Photo upload failed: '+error.message);
+      uploaded.push(path);newPhotos.push({path,caption:sv(f.caption)});
+    }
+    const p={id:av.id,name:byId('av-name').value.trim(),length_kms:nn(byId('av-kms').value),plants_planted:nn(byId('av-plants').value),
+      hand_over_to:sv(byId('av-hto').value),hand_over_to_whom:sv(byId('av-htw').value),dt_handover:sv(byId('av-hdt').value),remarks:sv(byId('av-remarks').value),
+      species:av.species.map(r=>({species:sv(r.species),no_of_plants:nn(r.no_of_plants),height_m:nn(r.height_m),girth_cm:nn(r.girth_cm)})),
+      replacements:av.replacements.map(r=>({new_species:sv(r.new_species),new_species_no:nn(r.new_species_no),replaced_species:sv(r.replaced_species),replace_no:nn(r.replace_no),replaced_on:sv(r.replaced_on),remarks:sv(r.remarks)})),
+      stretches:av.stretches.map(r=>({stretch_no:sv(r.stretch_no),stretch_from:sv(r.stretch_from),stretch_to:sv(r.stretch_to),latitude:nn(r.latitude),longitude:nn(r.longitude)})),
+      activities:av.activities.map(r=>({year:sv(r.year),activity:sv(r.activity),planting_from:sv(r.planting_from),planting_to:sv(r.planting_to),esti_no:sv(r.esti_no),esti_amount:nn(r.esti_amount),expenditure:nn(r.expenditure)})),
+      inspections:av.inspections.map(r=>({inspection_date:sv(r.inspection_date),officers:String(r.officers||'').split(/[,;\n]/).map(x=>x.trim()).filter(Boolean),survival_pct:nn(r.survival_pct),remarks:sv(r.remarks)})),
+      photos:[...av.photos.map(x=>({path:x.path,caption:sv(x.caption)})),...newPhotos]};
+    const {error}=await sb.rpc('avenue_save_plantation',{p});
+    if(error)throw error;
+    const keep=new Set(p.photos.map(x=>x.path)),orphan=avOrigPhotos.filter(x=>!keep.has(x));
+    if(orphan.length)await sb.storage.from('avenue-photos').remove(orphan);
+    avCancel();loadAvenue();
+  }catch(e){
+    if(uploaded.length)await sb.storage.from('avenue-photos').remove(uploaded);
+    alert('Could not save: '+(e.message||e));
+  }finally{btn.disabled=false;btn.textContent='💾 Save Plantation';}
+}
+async function avDelete(id){
+  const p=avList.find(x=>x.id===id);if(!p)return;
+  if(!confirm('Delete plantation "'+p.name+'" and all its details?'))return;
+  const {error}=await sb.rpc('avenue_delete_plantation',{p_id:id});
+  if(error){alert('Could not delete: '+error.message);return;}
+  const paths=(p.avenue_plantation_photos||[]).map(x=>x.path);
+  if(paths.length)await sb.storage.from('avenue-photos').remove(paths);
+  loadAvenue();
+}
+async function avView(id){
+  const p=avList.find(x=>x.id===id);if(!p)return;
+  const tbl=(head,rows)=>rows.length?'<div class="table-wrap"><table><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+(c===''||c==null?'—':esc(c))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>':'<p class="note">None recorded.</p>';
+  const by=(a,f)=>(a||[]).slice().sort(f||((x,y)=>x.id-y.id));
+  const acts=by(p.avenue_plantation_activities),te=acts.reduce((a,r)=>a+Number(r.esti_amount||0),0),tx=acts.reduce((a,r)=>a+Number(r.expenditure||0),0);
+  const H=t=>'<h4 style="color:#2d6a2d;margin:14px 0 6px">'+t+'</h4>';
+  byId('modal-body').style.maxWidth='980px';
+  byId('modal-body').innerHTML='<h3 style="color:#2d6a2d">'+esc(p.name)+'</h3>'
+   +'<p style="font-size:13px;margin:6px 0">Length: <strong>'+(p.length_kms==null?'—':esc(p.length_kms))+' km</strong> &nbsp;|&nbsp; Plants planted: <strong>'+(p.plants_planted==null?'—':fmt(p.plants_planted))+'</strong></p>'
+   +H('Location – Stretches')+tbl(['Stretch No.','From','To','Latitude','Longitude'],by(p.avenue_plantation_stretches).map(r=>[r.stretch_no,r.stretch_from,r.stretch_to,r.latitude,r.longitude]))
+   +H('Species')+tbl(['Species','No. of Plants','Height (m)','Girth (cm)'],by(p.avenue_plantation_species).map(r=>[r.species,r.no_of_plants,r.height_m,r.girth_cm]))
+   +H('Replacement History')+tbl(['Date','New Species','New Species No.','Replaced With','Replace No.','Remarks'],by(p.avenue_plantation_replacements,(a,b)=>String(a.replaced_on||'').localeCompare(String(b.replaced_on||''))).map(r=>[r.replaced_on,r.new_species,r.new_species_no,r.replaced_species,r.replace_no,r.remarks]))
+   +H('Sanction & Expenditure')+tbl(['Year','Activity','Period From','Period To','Estimate No.','Estimate (₹)','Expenditure (₹)','Balance (₹)'],acts.map(r=>[r.year,r.activity,r.planting_from,r.planting_to,r.esti_no,fmt(r.esti_amount),fmt(r.expenditure),fmt(r.balance)]))
+   +(acts.length?'<p style="font-size:13px;font-weight:600;color:#2d6a2d;margin-top:4px">Total Estimate '+inr(te)+' | Expenditure '+inr(tx)+' | Balance '+inr(te-tx)+'</p>':'')
+   +H('Inspections')+tbl(['Date','Officer(s)','Survival %','Remarks'],by(p.avenue_plantation_inspections,(a,b)=>String(a.inspection_date||'').localeCompare(String(b.inspection_date||''))).map(r=>[r.inspection_date,(r.officers||[]).join(', '),r.survival_pct==null?'':r.survival_pct+'%',r.remarks]))
+   +H('Hand-over')+'<p style="font-size:13px">'+(p.dt_handover||p.hand_over_to||p.hand_over_to_whom?esc(p.hand_over_to||'—')+' — '+esc(p.hand_over_to_whom||'—')+' on '+esc(p.dt_handover||'—'):'Not handed over')+'</p>'
+   +(p.remarks?H('Remarks')+'<p style="font-size:13px;white-space:pre-wrap">'+esc(p.remarks)+'</p>':'')
+   +'<div id="av-v-photos" class="av-photos" style="margin-top:12px"></div><div style="text-align:right;margin-top:12px"><button class="abtn ao" onclick="closeModal()">Close</button></div>';
+  byId('modal').style.display='flex';
+  const ph=by(p.avenue_plantation_photos);
+  if(ph.length){const {data}=await sb.storage.from('avenue-photos').createSignedUrls(ph.map(x=>x.path),900);
+    if(data)byId('av-v-photos').innerHTML=data.map((d,i)=>d.signedUrl?`<div class="av-ph"><img src="${esc(d.signedUrl)}" alt=""><div>${esc(ph[i].caption||'')}</div></div>`:'').join('');}
+}
+
+/* ── ESTIMATES FROM SUPABASE `estimate` TABLE ── */
+let avEstimates=[];
+async function loadAvenueEstimates(){
+  const st=byId('av-est-status');
+  const {data,error}=await sb.from('estimate').select('est_id,esti_no,scheme,esti_description,est_cost,est_exp,est_date,status').order('est_date',{ascending:false});
+  if(error){avEstimates=[];if(st)st.textContent='⚠️ Could not load estimates: '+error.message;return;}
+  avEstimates=data||[];
+  if(st)st.textContent=avEstimates.length?'📥 '+avEstimates.length+' estimates loaded from the Estimate table':'⚠️ No estimates available (you may not have access to the Estimate data). You can still enter them manually.';
+  if(byId('av-form').style.display==='block')avRender('activities');
+}
+function avEstOptions(){
+  const only=byId('av-est-only')&&byId('av-est-only').checked;
+  return avEstimates.filter(e=>!only||/avenue/i.test((e.esti_description||'')+' '+(e.scheme||'')));
+}
+function avEstPick(i,v){
+  if(v==='__manual__'){av.activities[i]._manual=true;av.activities[i].esti_no='';avRender('activities');return;}
+  const r=av.activities[i];
+  if(!v){r.esti_no='';avRender('activities');return;}
+  const dup=av.activities.findIndex((x,j)=>j!==i&&x.esti_no===v);
+  if(dup>=0){alert('Estimate '+v+' is already added in row '+(dup+1)+'.');avRender('activities');return;}
+  const e=avEstimates.find(x=>x.esti_no===v);if(!e)return;
+  r.esti_no=e.esti_no;r.esti_amount=e.est_cost==null?'':Number(e.est_cost);r.expenditure=e.est_exp==null?'':Number(e.est_exp);
+  const y=/(\d{4})\s*-\s*(\d{2,4})/.exec(e.esti_no||'');if(y)r.year=y[1]+'-'+y[2].slice(-2);
+  const d=e.esti_description||'';if(/maint/i.test(d))r.activity='Maintenance';else if(/rais/i.test(d))r.activity='Raising';
+  avRender('activities');
+}
+function avEstList(i){av.activities[i]._manual=false;av.activities[i].esti_no='';avRender('activities');}
+function avEstInfo(){
+  const el=byId('av-est-info');if(!el)return;
+  el.innerHTML=av.activities.map(r=>{const e=avEstimates.find(x=>x.esti_no===r.esti_no);return e?'• <strong>'+esc(e.esti_no)+'</strong> ('+esc(e.scheme||'')+'): '+esc(e.esti_description||'')+(e.status?' — <em>'+esc(e.status)+'</em>':''):'';}).filter(Boolean).join('<br>');
+}
+
+/* ── COPY / SELECT / RIGHT-CLICK RESTRICTIONS (admins are exempt) ── */
+let restrictOn=true; // global switch, stored in Supabase (nursery_app_settings.copy_protection)
+const isAdminUser=()=>currentRole==='admin'||!restrictOn; // exempt: admins, or when protection is switched off
+const isFieldEl=el=>!!(el&&el.closest&&el.closest('input,textarea,select,[contenteditable="true"]'));
+function applyRestrictions(){document.body.classList.toggle('restricted',!isAdminUser());syncRestrictUI();}
+document.addEventListener('contextmenu',e=>{if(!isAdminUser())e.preventDefault();});
+document.addEventListener('copy',e=>{if(!isAdminUser()){e.preventDefault();if(e.clipboardData)e.clipboardData.setData('text/plain','');}});
+document.addEventListener('dragstart',e=>{if(!isAdminUser())e.preventDefault();});
+document.addEventListener('selectstart',e=>{if(!isAdminUser()&&!isFieldEl(e.target))e.preventDefault();});
+document.addEventListener('keydown',e=>{
+  if(isAdminUser())return;
+  const k=(e.key||'').toLowerCase(),ctrl=e.ctrlKey||e.metaKey,field=isFieldEl(e.target);
+  // Copy: Ctrl/Cmd+C, Ctrl+Insert
+  if((ctrl&&k==='c')||(ctrl&&k==='insert')){e.preventDefault();return;}
+  // Keyboard selection outside form fields: Ctrl+A, Shift+arrows/Home/End/PageUp/PageDown
+  if(!field){
+    if(ctrl&&k==='a'){e.preventDefault();return;}
+    if(e.shiftKey&&['arrowleft','arrowright','arrowup','arrowdown','home','end','pageup','pagedown'].includes(k)){e.preventDefault();return;}
+  }
+},true);
+applyRestrictions();
+
+
+/* ── COPY-PROTECTION TOGGLE (admin switch in the header; setting is stored in Supabase) ── */
+function syncRestrictUI(){
+  const w=byId('rs-toggle-wrap');if(!w)return;
+  w.style.display=currentRole==='admin'?'inline-flex':'none';
+  const cb=byId('rs-toggle');if(cb)cb.checked=restrictOn;
+}
+async function loadRestrictSetting(){
+  try{
+    const {data}=await sb.from('nursery_app_settings').select('value').eq('key','copy_protection').maybeSingle();
+    if(data&&data.value&&typeof data.value.enabled==='boolean')restrictOn=data.value.enabled;
+  }catch(e){}
+  applyRestrictions();
+}
+async function toggleRestrict(on){
+  const cb=byId('rs-toggle');
+  if(currentRole!=='admin'){if(cb)cb.checked=restrictOn;return;}
+  if(!(await hasSession())){if(cb)cb.checked=restrictOn;return;}
+  const {data,error}=await sb.from('nursery_app_settings').upsert({key:'copy_protection',value:{enabled:!!on},updated_at:new Date().toISOString()}).select('key');
+  if(error||!data||!data.length){alert('Could not change the setting'+(error?': '+error.message:'.'));if(cb)cb.checked=restrictOn;return;}
+  restrictOn=!!on;applyRestrictions();
+}
+loadRestrictSetting();
 // Auto-resize for Google Sites iframe embedding
 function sendHeight(){
   const h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight,800);
