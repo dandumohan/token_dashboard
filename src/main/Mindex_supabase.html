@@ -2712,7 +2712,7 @@
     services: { table: 'services', pk: 'service_id', cols: [['Service_id', 'service_id', 'id'], ['Service_Type', 'service_type', 's'], ['Service_Date', 'service_date', 's'], ['Order_Details', 'order_details', 's'], ['Order_Date', 'order_date', 's']] },
     estiTask: { table: 'esti_task', pk: null, order: ['task_esti_no', 'est_slno'], cols: [['task_esti_no', 'task_esti_no', 's'], ['est_slno', 'est_slno', 'n'], ['task', 'task', 's'], ['fsr_code', 'fsr_code', 's'], ['qty', 'qty', 'n'], ['unit', 'unit', 's'], ['rate', 'rate', 'n'], ['per', 'per', 's'], ['amount', 'amount', 'n']] },
     voucher: { table: 'voucher_details', pk: 'vch_id', cols: [['Vch_id', 'vch_id', 'id'], ['Esti_no', 'esti_no', 's'], ['Task_no', 'task_no', 'n'], ['Voucher_No', 'voucher_no', 's'], ['Voucher_Date', 'voucher_date', 'd'], ['Voucher_Details', 'voucher_details', 's'], ['Voucher_Amount', 'voucher_amount', 'n'], ['Qnty', 'qnty', 'n'], ['MBook_no', 'mbook_no', 's'], ['Page_from', 'page_from', 'p'], ['Page_to', 'page_to', 'p'], ['Payee_Name', 'payee_name', 's'], ['Work_From_Date', 'work_from_date', 'd'], ['Work_To_Date', 'work_to_date', 'd'], ['Measured_By', 'measured_by', 's'], ['Measurement_Date', 'measurement_date', 'd'], ['Check_Measured_By', 'check_measured_by', 's'], ['Check_Measurement_Date', 'check_measurement_date', 'd'], ['Test_Checked_By', 'test_checked_by', 's'], ['Test_Check_Date', 'test_check_date', 'd'], ['Drawn_Amount', 'drawn_amount', 'n'], ['Adv_Token_No', 'adv_token_no', 's'], ['Drawn_Date', 'drawn_date', 'd'], ['Batch_No', 'batch_no', 's']] },
-    fund: { table: 'fund_application', pk: 'fa_id', cols: [['FA_id', 'fa_id', 'id'], ['Esti_no', 'esti_no', 's'], ['Task_no', 'task_no', 'n'], ['Task_Description', 'task_description', 's'], ['Qnty', 'qnty', 'n'], ['Rate', 'rate', 'n'], ['Amount', 'amount', 'n'], ['Batch_No', 'batch_no', 's'], ['Application_Date', 'application_date', 'd'], ['Token_no', 'token_no', 's']] },
+    fund: { table: 'fund_application', pk: 'fa_id', cols: [['FA_id', 'fa_id', 'id'], ['Esti_no', 'esti_no', 's'], ['Task_no', 'task_no', 'n'], ['Task_Description', 'task_description', 's'], ['Qnty', 'qnty', 'n'], ['Unit', 'unit', 's'], ['Rate', 'rate', 'n'], ['Per', 'per', 's'], ['Amount', 'amount', 'n'], ['Batch_No', 'batch_no', 's'], ['Application_Date', 'application_date', 'd'], ['Token_no', 'token_no', 's']] },
     withdrawn: { table: 'withdrawn_details', pk: 'wd_id', cols: [['WD_id', 'wd_id', 'id'], ['Esti_no', 'esti_no', 's'], ['Advance_Token_No', 'advance_token_no', 's'], ['Credited_Status', 'credited_status', 's'], ['Withdrawn_Date', 'withdrawn_date', 'd'], ['Withdrawn_Amount', 'withdrawn_amount', 'n'], ['Withdrawn_Cheque_No', 'withdrawn_cheque_no', 's']] },
     account: { table: 'withdrawal_accounts', pk: 'wa_id', cols: [['WA_id', 'wa_id', 'id'], ['Bank', 'bank', 's'], ['Branch', 'branch', 's'], ['Place', 'place', 's'], ['Account_No', 'account_no', 's'], ['IFSC_Code', 'ifsc_code', 's'], ['Name_of_Account', 'name_of_account', 's'], ['Drawing_Authorities', 'drawing_authorities', 's'], ['No_of_Cheque_Books_Issued', 'no_of_cheque_books_issued', 'n']] },
     cheque: { table: 'cheque_books', pk: 'cb_id', cols: [['CB_id', 'cb_id', 'id'], ['WA_id', 'wa_id', 'n'], ['Cheque_Book_No', 'cheque_book_no', 's'], ['Leaves_No_From', 'leaves_no_from', 's'], ['Leaves_No_To', 'leaves_no_to', 's']] },
@@ -3145,7 +3145,7 @@
       if (!(tk in tokenCache)) tokenCache[tk] = await findAdvanceTokenNo_(d.esti_no, d.batch_no);
       out.push({
         esti_no: S_(d.esti_no), task_no: I_(d.task_no), task_description: S_(d.task_description), qnty: N_(d.qnty),
-        rate: N_(d.rate), amount: N_(d.amount), batch_no: S_(d.batch_no), application_date: D_(d.application_date), token_no: tokenCache[tk] || null   // NULL (not '') when no advance token exists yet: the foreign key rejects ''
+        unit: S_(d.unit), per: S_(d.per), rate: N_(d.rate), amount: N_(d.amount), batch_no: S_(d.batch_no), application_date: D_(d.application_date), token_no: tokenCache[tk] || null   // NULL (not '') when no advance token exists yet: the foreign key rejects ''
       });
     }
     const n = await insertMany_('fund_application', 'fa_id', out);
@@ -9007,7 +9007,7 @@
         overLimitTasks.push((t.task || ('Task ' + t.est_slno)) + ' (balance ' + inr(balance) + ')');
         return;
       }
-      planned.push({ taskNo: t.est_slno, description: desc, qty: effectiveQty, rate: rate, amount: amount });
+      planned.push({ taskNo: t.est_slno, description: desc, qty: effectiveQty, unit: t.unit || '', per: t.per || '', rate: rate, amount: amount });
     });
 
     if (overLimitTasks.length) {
@@ -9034,7 +9034,9 @@
       <tr>
         <td><input type="text" style="width:100%;" value="${String(p.description).replace(/"/g, '&quot;')}" onchange="faPreview[${p.idx}].description=this.value"></td>
         <td><input type="number" style="width:80px;" value="${p.qty}" onchange="faPreview[${p.idx}].qty=Number(this.value)||0; recalcFaPreviewAmount(${p.idx})"></td>
+        <td>${String(p.unit || '').replace(/</g, '&lt;')}</td>
         <td>${inr(p.rate)}</td>
+        <td>${String(p.per || '').replace(/</g, '&lt;')}</td>
         <td><input type="number" style="width:100px;" value="${p.amount}" onchange="faPreview[${p.idx}].amount=Number(this.value)||0" id="fa_prev_amt_${p.idx}"></td>
         <td><button class="icon-btn" title="Remove" onclick="removeFaPlanRow(${p.idx}, '${estId}')">&#10005;</button></td>
       </tr>`).join('');
@@ -9043,7 +9045,7 @@
       <div class="scheme-card-title" style="font-size:13px; margin-bottom:6px;">Preview (${faPreview.length} lines) &middot; Total ${inr(total)}</div>
       <div class="list-wrap" style="max-height:240px; margin-bottom:12px;">
         <table class="grid">
-          <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+          <thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Per</th><th>Amount</th><th></th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>
@@ -9086,7 +9088,9 @@
       task_no: p.taskNo,
       task_description: p.description,
       qnty: p.qty,
+      unit: p.unit,
       rate: p.rate,
+      per: p.per,
       amount: p.amount,
       batch_no: p.batch_no,
       application_date: p.application_date
